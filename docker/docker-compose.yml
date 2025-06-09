@@ -1,0 +1,99 @@
+services:
+  zipkin:
+    container_name: zipkin
+    image: openzipkin/zipkin:latest
+    ports:
+      - "9411:9411"
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      - tempo
+      - mimir-1
+      - loki
+
+  mimir-1:
+    container_name: mimir-1
+    hostname: mimir-1
+    image: grafana/mimir:2.14.3
+    ports:
+      - "8080:8080" # HTTP API
+    volumes:
+      - ./mimir.yaml:/etc/mimir.yaml
+    command: ["-config.file=/etc/mimir.yaml"]
+
+  mimir-2:
+    container_name: mimir-2
+    hostname: mimir-2
+    image: grafana/mimir:2.14.3
+    volumes:
+      - ./mimir.yaml:/etc/mimir.yaml
+    command: ["-config.file=/etc/mimir.yaml"]
+
+  mimir-3:
+    container_name: mimir-3
+    hostname: mimir-3
+    image: grafana/mimir:2.14.3
+    volumes:
+      - ./mimir.yaml:/etc/mimir.yaml
+    command: ["-config.file=/etc/mimir.yaml"]
+
+  tempo:
+    container_name: tempo
+    image: grafana/tempo:2.7.2-arm64
+    ports:
+      - "3200:3200" # HTTP API
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+    command: ["-config.file=/etc/tempo.yaml"]
+
+  loki:
+    container_name: loki
+    image: grafana/loki:3.4.2-arm64
+    command: [ "-config.file=/etc/loki/local-config.yaml" ]
+    ports:
+      - "3100:3100"
+
+  otel-collector:
+    container_name: otel-collector
+    image: otel/opentelemetry-collector:0.120.0
+    ports:
+      - "4318:4318"
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+      - ./telemetry-data.json:/etc/telemetry-data.json
+    command: ["--config", "/etc/otel-collector-config.yaml"]
+    depends_on:
+      - tempo
+      - mimir-1
+      - loki
+
+  sample-spring-modulith:
+    container_name: sample-spring-modulith
+    image: sample-sprin-modulith:1.0
+    ports:
+      - "8084:8084"
+    environment:
+      - SPRING_DOCKER_COMPOSE_FILE=./docker/docker-compose.yml
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=sample-spring-modulith
+      - OTEL_INSTRUMENTATION_MICROMETER_ENABLED=true
+      - OTEL_EXPOSRTER_OTLP_LOGGING_ENABLED=true
+      - OTEL_EXPORTER_OTLP_METRICS_ENABLED=true
+      - OTEL_EXPORTER_OTLP_TRACES_ENABLED=true
+      - OTEL_TRACES_EXPORTER=zipkin
+      - OTEL_EXPORTER_ZIPKIN_ENDPOINT=http://zipkin:9411/api/v2/spans
+      - OTEL_EXPORTER_ZIPKIN_ENABLED=true
+#      - OTEL_JAVA_GLOBAL_AUTOCONFIGURE_ENABLED=true
+    depends_on:
+      - otel-collector
+      - mimir-1
+      - loki
+      - tempo

@@ -12,9 +12,9 @@ import pl.piomin.services.organization.OrganizationExternalAPI;
 @RequestMapping("/api")
 public class GatewayManagement {
 
-    private DepartmentExternalAPI departmentExternalAPI;
-    private EmployeeExternalAPI employeeExternalAPI;
-    private OrganizationExternalAPI organizationExternalAPI;
+    private final DepartmentExternalAPI departmentExternalAPI;
+    private final EmployeeExternalAPI employeeExternalAPI;
+    private final OrganizationExternalAPI organizationExternalAPI;
 
     public GatewayManagement(DepartmentExternalAPI departmentExternalAPI,
                              EmployeeExternalAPI employeeExternalAPI,

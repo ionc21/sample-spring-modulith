@@ -1,0 +1,23 @@
+target: all
+
+blocks_storage:
+  backend: filesystem
+  bucket_store:
+    sync_dir: /data/tsdb-sync
+  filesystem:
+    dir: /data/tsdb
+compactor:
+  data_dir: /data/compactor
+  sharding_ring:
+    kvstore:
+      store: inmemory
+ingester:
+  ring:
+    kvstore:
+      store: inmemory
+    replication_factor: 1
+
+memberlist:
+  join_members: [mimir-1, mimir-2, mimir-3]
+server:
+  log_level: debug
